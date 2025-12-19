@@ -46,6 +46,7 @@ class Constants:
     MLP_VARIANT = "MLP"
     TRANSFORMER_VARIANT = "Transformer"
     MULTIMODAL_VARIANT = "Multimodal"
+    BIGRU_VARIANT = 'BiGRU'
 
     # ----------------------- WANDB CONSTANTS -----------------------
     WANDB_PROJECT = "error_recognition"

@@ -115,3 +115,27 @@ class PositionalEncodingLearn(nn.Module):
         r = torch.arange(x.shape[1], device=x.device)
         embed = self.embed(r)  # seq_len, embedding_dim
         return x + embed.repeat(x.shape[0], 1, 1)
+
+
+class BiGRU(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.1):
+        super(BiGRU, self).__init__()
+        
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        
+        self.gru = nn.GRU(input_size, hidden_size, num_layers, 
+                          batch_first=True, 
+                          dropout=dropout if num_layers > 1 else 0,
+                          bidirectional=True)
+        
+        self.fc = nn.Linear(hidden_size * 2, output_size)
+
+    def forward(self, x):
+        self.gru.flatten_parameters()
+        
+        out, _ = self.gru(x)
+        
+        out = self.fc(out)
+        
+        return out

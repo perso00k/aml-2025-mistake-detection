@@ -14,7 +14,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_sco
 from torcheval.metrics.functional import binary_auprc
 from tqdm import tqdm
 
-from core.models.blocks import fetch_input_dim, MLP
+from core.models.blocks import fetch_input_dim, MLP, BiGRU
 from core.models.er_former import ErFormer
 from dataloader.CaptainCookStepDataset import collate_fn, CaptainCookStepDataset
 from dataloader.CaptainCookSubStepDataset import CaptainCookSubStepDataset
@@ -50,6 +50,11 @@ def fetch_model(config):
     elif config.variant == const.TRANSFORMER_VARIANT:
         if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
             model = ErFormer(config)
+    elif config.variant == const.BIGRU_VARIANT:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
+            input_dim = fetch_input_dim(config)
+            # Usiamo BiGRU qui
+            model = BiGRU(input_dim, 512, 1, num_layers=2, dropout=0.2) # Magari 2 layer per renderla più potente
 
     assert model is not None, f"Model not found for variant: {config.variant} and backbone: {config.backbone}"
     model.to(config.device)
