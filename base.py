@@ -53,8 +53,7 @@ def fetch_model(config):
     elif config.variant == const.BIGRU_VARIANT:
         if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
             input_dim = fetch_input_dim(config)
-            # Usiamo BiGRU qui
-            model = BiGRU(input_dim, 512, 1, num_layers=2, dropout=0.2) # Magari 2 layer per renderla più potente
+            model = BiGRU(input_dim, 512, 1, num_layers=2, dropout=0.2)
 
     assert model is not None, f"Model not found for variant: {config.variant} and backbone: {config.backbone}"
     model.to(config.device)
@@ -271,7 +270,7 @@ def train_step_test_step_dataset_base(config):
     torch.manual_seed(config.seed)
 
     cuda_kwargs = {
-        "num_workers": 8,
+        "num_workers": 0, # 8 ma settato a 0 per esecuzione in locale
         "pin_memory": False,
     }
     train_kwargs = {**cuda_kwargs, "shuffle": True, "batch_size": config.batch_size}
