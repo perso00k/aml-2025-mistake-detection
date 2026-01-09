@@ -11,6 +11,8 @@ matplotlib
 seaborn
 wandb
 torcheval
+timm
+decord
 
 pyrebase4
 yacs
