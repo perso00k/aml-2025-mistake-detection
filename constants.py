@@ -42,6 +42,8 @@ class Constants:
     X3D = "x3d"
     SLOWFAST = "slowfast"
     IMAGEBIND = "imagebind"
+    PERCEPTION_ENCODER = "perception_encoder"
+
 
     MLP_VARIANT = "MLP"
     TRANSFORMER_VARIANT = "Transformer"
