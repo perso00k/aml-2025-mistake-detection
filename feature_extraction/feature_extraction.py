@@ -7,8 +7,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-# Aggiunge la cartella corrente (feature_extraction) al path
-# Così Python trova il 'core' di Perception Encoder che hai messo qui dentro
+# Setup path per importare il core
 sys.path.append(os.getcwd())
 
 try:
@@ -16,8 +15,7 @@ try:
     from core.vision_encoder import transforms as pe_transforms
     from decord import VideoReader, cpu
 except ImportError as e:
-    print(f"ERRORE: {e}")
-    print("Assicurati di lanciare lo script da DENTRO la cartella 'feature_extraction'.")
+    print(f"ERRORE IMPORTS: {e}")
     sys.exit(1)
 
 class PerceptionEncoderWrapper:
@@ -59,32 +57,38 @@ def process_video(video_path, model_wrapper, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--video_dir", type=str, default="../videos", help="Dove sono i video mp4")
-    parser.add_argument("--output_dir", type=str, default="../features/PE_features", help="Dove salvare i file .npz")
+    parser.add_argument("--video_dir", type=str, default="../videos")
+    parser.add_argument("--output_dir", type=str, default="../features/PE_features")
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--fps", type=float, default=2.0)
+    
+    # FONDAMENTALE: 1.0 FPS per compatibilità totale con il dataloader originale
+    parser.add_argument("--fps", type=float, default=1.0)
+    
     parser.add_argument("--model", type=str, default="PE-Core-B16-224")
     args = parser.parse_args()
 
-    # Controllo di sicurezza per i percorsi relativi
+    # Gestione path
     if args.video_dir.startswith(".."):
         base_dir = os.path.dirname(os.getcwd())
         args.video_dir = os.path.join(base_dir, args.video_dir.strip("../"))
         args.output_dir = os.path.join(base_dir, args.output_dir.strip("../"))
 
-    print(f"Leggo video da: {args.video_dir}")
-    print(f"Salvo feature in: {args.output_dir}")
+    print(f"Input: {args.video_dir}")
+    print(f"Output: {args.output_dir}")
+    print(f"FPS: {args.fps} (Modalità Compatibile)")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = PerceptionEncoderWrapper(args.model, device)
     
     videos = glob.glob(os.path.join(args.video_dir, "**/*.mp4"), recursive=True)
-    print(f"Trovati {len(videos)} video.")
+    print(f"Trovati {len(videos)} video. Inizio estrazione...")
 
     for vid in tqdm(videos):
         rel_path = os.path.relpath(vid, args.video_dir)
+        video_id = os.path.splitext(os.path.basename(vid))[0]
         
-        save_path = os.path.join(args.output_dir, os.path.splitext(rel_path)[0] + ".npz")
+        filename = f"{video_id}_360p.mp4_1s_1s.npz"
+        save_path = os.path.join(args.output_dir, filename)
         
         if os.path.exists(save_path): continue
         
@@ -98,7 +102,7 @@ def main():
             else:
                 feats_np = np.array(feats)
 
-            np.savez_compressed(save_path, features=feats_np)
+            np.savez_compressed(save_path, arr_0=feats_np)
 
 if __name__ == "__main__":
     main()
