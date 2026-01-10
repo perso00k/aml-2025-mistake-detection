@@ -59,9 +59,8 @@ def process_video(video_path, model_wrapper, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    # Percorsi di default intelligenti: salgono di un livello (..) per trovare i video
     parser.add_argument("--video_dir", type=str, default="../videos", help="Dove sono i video mp4")
-    parser.add_argument("--output_dir", type=str, default="../features/PE_features", help="Dove salvare i file .pt")
+    parser.add_argument("--output_dir", type=str, default="../features/PE_features", help="Dove salvare i file .npz")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--fps", type=float, default=2.0)
     parser.add_argument("--model", type=str, default="PE-Core-B16-224")
@@ -69,7 +68,7 @@ def main():
 
     # Controllo di sicurezza per i percorsi relativi
     if args.video_dir.startswith(".."):
-        base_dir = os.path.dirname(os.getcwd()) # Cartella aml-2025...
+        base_dir = os.path.dirname(os.getcwd())
         args.video_dir = os.path.join(base_dir, args.video_dir.strip("../"))
         args.output_dir = os.path.join(base_dir, args.output_dir.strip("../"))
 
@@ -84,14 +83,22 @@ def main():
 
     for vid in tqdm(videos):
         rel_path = os.path.relpath(vid, args.video_dir)
-        save_path = os.path.join(args.output_dir, os.path.splitext(rel_path)[0] + ".pt")
+        
+        save_path = os.path.join(args.output_dir, os.path.splitext(rel_path)[0] + ".npz")
         
         if os.path.exists(save_path): continue
         
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        
         feats = process_video(vid, model, args)
+        
         if feats is not None:
-            torch.save(feats, save_path)
+            if isinstance(feats, torch.Tensor):
+                feats_np = feats.detach().cpu().numpy()
+            else:
+                feats_np = np.array(feats)
+
+            np.savez_compressed(save_path, features=feats_np)
 
 if __name__ == "__main__":
     main()
