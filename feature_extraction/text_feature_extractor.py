@@ -28,7 +28,6 @@ def clean_step_text(text):
     """
     Cleans the step text description.
     Example: "Add-1/2 tsp..." -> "Add 1/2 tsp..."
-    This couse PE is trained on real sentences so Add-1/2 is viewed as a token instead of being considered as 2 words, so in this way it perform better
     """
     return text.replace("-", " ").strip()
 
@@ -46,19 +45,7 @@ def process_single_graph(json_path, model, tokenizer, context_length, device):
         else:
             clean_text = clean_step_text(raw_text)
         
-        # Manual tokenization (following standard CLIP implementation)
-        sot_token = tokenizer.encoder["<|startoftext|>"]
-        eot_token = tokenizer.encoder["<|endoftext|>"]
-        tokens = [sot_token] + tokenizer.encode(clean_text) + [eot_token]
-        
-        # Padding / Truncating
-        if len(tokens) > context_length:
-            tokens = tokens[:context_length]
-            tokens[-1] = eot_token
-        else:
-            tokens += [0] * (context_length - len(tokens))
-        
-        text_tensor = torch.tensor([tokens], dtype=torch.long).to(device)
+        text_tensor = tokenizer(clean_text, context_length=context_length).to(device)
 
         # Feature Extraction
         with torch.no_grad():
@@ -74,7 +61,7 @@ def main():
     parser = argparse.ArgumentParser(description="Extract text features from graph JSON files using Perception Encoder.")
     parser.add_argument("--graphs_dir", type=str, required=True, help="Directory containing the graph JSON files.")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory where .npz files will be saved.")
-    parser.add_argument("--model", type=str, default="PE-Core-B16-224", help="Model config name (must match the one used for video features).")
+    parser.add_argument("--model", type=str, default="PE-Core-B16-224", help="Model config name.")
     args = parser.parse_args()
 
     # Handle relative paths safely
@@ -86,7 +73,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
-    # 1. Load the Model (Once)
+    # 1. Load the Model
     print(f"Loading model: {args.model}...")
     model = pe.CLIP.from_config(args.model, pretrained=True)
     model.to(device)
@@ -109,12 +96,10 @@ def main():
             # Extract features
             features_dict = process_single_graph(json_path, model, tokenizer, context_length, device)
             
-            # Determine output filename
-            # Example: "code/graphs/recipe.json" -> "recipe.npz"
+            # Save output
             filename = os.path.basename(json_path).replace(".json", ".npz")
             output_path = os.path.join(args.output_dir, filename)
             
-            # Save compressed .npz
             np.savez_compressed(output_path, **features_dict)
             
         except Exception as e:
